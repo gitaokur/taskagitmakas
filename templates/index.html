@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Rock Paper Scissors</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+  <main class="container">
+    <header class="header">
+      <h1>Rock · Paper · Scissors</h1>
+      <p class="sub">Single-player • Scoreboard saved in your browser</p>
+    </header>
+
+    <!-- Nickname card -->
+    <section id="nicknameCard" class="card">
+      <h2>Enter your nickname</h2>
+      <p class="muted">Changing your nickname will reset your scoreboard.</p>
+
+      <form id="nicknameForm" class="row">
+        <input id="nicknameInput" type="text" placeholder="e.g., alperen" maxlength="24" autocomplete="off" />
+        <button type="submit">Start</button>
+      </form>
+
+      <p id="nicknameError" class="error hidden"></p>
+    </section>
+
+    <!-- Game card -->
+    <section id="gameCard" class="card hidden">
+      <div class="topRow">
+        <div>
+          <div class="label">Player</div>
+          <div class="value" id="nicknameDisplay">—</div>
+        </div>
+
+        <div class="actions">
+          <button id="changeNickBtn" class="secondary" type="button">Change nickname</button>
+          <button id="resetScoreBtn" class="secondary" type="button">Reset scoreboard</button>
+        </div>
+      </div>
+
+      <div class="scoreboard">
+        <div class="scoreItem">
+          <div class="label">Wins</div>
+          <div class="value" id="wins">0</div>
+        </div>
+        <div class="scoreItem">
+          <div class="label">Losses</div>
+          <div class="value" id="losses">0</div>
+        </div>
+        <div class="scoreItem">
+          <div class="label">Ties</div>
+          <div class="value" id="ties">0</div>
+        </div>
+      </div>
+
+      <hr class="sep" />
+
+      <h2 class="center">Make your move</h2>
+      <div class="moves">
+        <button class="move" data-move="rock" type="button">✊<span>Rock</span></button>
+        <button class="move" data-move="paper" type="button">✋<span>Paper</span></button>
+        <button class="move" data-move="scissors" type="button">✌️<span>Scissors</span></button>
+      </div>
+
+      <div id="resultBox" class="result hidden">
+        <div class="resultTitle" id="resultTitle"></div>
+        <div class="resultDetails" id="resultDetails"></div>
+      </div>
+
+      <p id="apiError" class="error hidden"></p>
+    </section>
+
+    <footer class="footer">
+      <span class="muted">Tip: scoreboard is stored in <code>localStorage</code> on this domain.</span>
+    </footer>
+  </main>
+
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

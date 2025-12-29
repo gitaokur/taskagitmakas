@@ -22,7 +22,7 @@ steps:
 substitutions:
   _REGION: europe-west3
   _REPOSITORY: github-repo
-  _SERVICE_NAME: bomb-game
+  _SERVICE_NAME: tkmgame
 
 images:
   - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_SERVICE_NAME}:$SHORT_SHA'
