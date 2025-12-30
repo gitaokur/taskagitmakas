@@ -16,18 +16,26 @@ const tiesEl = document.getElementById("ties");
 const changeNickBtn = document.getElementById("changeNickBtn");
 const resetScoreBtn = document.getElementById("resetScoreBtn");
 
-const resultBox = document.getElementById("resultBox");
-const resultTitle = document.getElementById("resultTitle");
-const resultDetails = document.getElementById("resultDetails");
-const apiError = document.getElementById("apiError");
-
 const moveButtons = Array.from(document.querySelectorAll(".move"));
+
+// Modal elements
+const modalOverlay = document.getElementById("modalOverlay");
+const modalCloseBtn = document.getElementById("modalCloseBtn");
+const modalTitle = document.getElementById("modalTitle");
+const countdownEl = document.getElementById("countdown");
+const modalMoves = document.getElementById("modalMoves");
+const modalOutcome = document.getElementById("modalOutcome");
+const modalError = document.getElementById("modalError");
+const nextRoundBtn = document.getElementById("nextRoundBtn");
 
 const MOVE_META = {
   rock: { emoji: "✊", label: "Rock" },
   paper: { emoji: "✋", label: "Paper" },
   scissors: { emoji: "✌️", label: "Scissors" },
 };
+
+let countdownTimer = null;
+let inRound = false;
 
 function safeTrim(s) {
   return (s || "").trim();
@@ -81,9 +89,7 @@ function enterGameView() {
 
   hide(nicknameCard);
   show(gameCard);
-
-  hide(resultBox);
-  hide(apiError);
+  closeModal(true);
 }
 
 function enterNicknameView() {
@@ -94,18 +100,12 @@ function enterNicknameView() {
   nicknameInput.focus();
 
   hide(nicknameError);
-  hide(apiError);
-  hide(resultBox);
+  closeModal(true);
 }
 
 function setNicknameError(msg) {
   nicknameError.textContent = msg;
   show(nicknameError);
-}
-
-function setApiError(msg) {
-  apiError.textContent = msg;
-  show(apiError);
 }
 
 function setButtonsDisabled(disabled) {
@@ -127,44 +127,126 @@ function updateScoreForOutcome(outcome) {
   renderScore();
 }
 
-async function play(move) {
-  hide(apiError);
+function clearCountdownTimer() {
+  if (countdownTimer) {
+    clearInterval(countdownTimer);
+    countdownTimer = null;
+  }
+}
+
+function openModal() {
+  show(modalOverlay);
+  document.body.classList.add("noScroll");
+}
+
+function closeModal(force = false) {
+  // If a round is in progress, don't allow closing unless forced (like changing nickname).
+  if (inRound && !force) return;
+
+  clearCountdownTimer();
+  hide(modalOverlay);
+  document.body.classList.remove("noScroll");
+
+  // reset modal UI
+  modalTitle.textContent = "Get ready…";
+  countdownEl.textContent = "3";
+  show(countdownEl);
+
+  hide(modalMoves);
+  hide(modalOutcome);
+  hide(modalError);
+  hide(nextRoundBtn);
+
+  modalMoves.textContent = "";
+  modalOutcome.textContent = "";
+  modalError.textContent = "";
+}
+
+function setModalError(msg) {
+  modalError.textContent = msg;
+  show(modalError);
+}
+
+async function requestPlay(move) {
+  const res = await fetch("/api/play", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ move }),
+  });
+
+  const payload = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const msg = payload?.error || `Request failed (${res.status})`;
+    throw new Error(msg);
+  }
+  return payload;
+}
+
+function startRound(selectedMove) {
+  if (inRound) return;
+  inRound = true;
+
+  // Lock UI
   setButtonsDisabled(true);
 
-  try {
-    const res = await fetch("/api/play", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ move }),
-    });
+  // Prepare modal
+  openModal();
+  modalTitle.textContent = "Get ready…";
+  hide(modalMoves);
+  hide(modalOutcome);
+  hide(modalError);
+  hide(nextRoundBtn);
 
-    const payload = await res.json().catch(() => ({}));
+  let t = 3;
+  countdownEl.textContent = String(t);
+  show(countdownEl);
 
-    if (!res.ok) {
-      const msg = payload?.error || `Request failed (${res.status})`;
-      setApiError(msg);
+  clearCountdownTimer();
+  countdownTimer = setInterval(async () => {
+    t -= 1;
+
+    if (t > 0) {
+      countdownEl.textContent = String(t);
       return;
     }
 
-    const playerMove = payload.playerMove;
-    const computerMove = payload.computerMove;
-    const outcome = payload.outcome;
+    // Stop timer at 0 and resolve round
+    clearCountdownTimer();
+    countdownEl.textContent = "…";
 
-    const p = MOVE_META[playerMove];
-    const c = MOVE_META[computerMove];
+    try {
+      const payload = await requestPlay(selectedMove);
 
-    resultTitle.textContent = outcomeTitle(outcome);
-    resultDetails.textContent =
-      `You: ${p.emoji} ${p.label} — Computer: ${c.emoji} ${c.label}`;
+      const playerMove = payload.playerMove;
+      const computerMove = payload.computerMove;
+      const outcome = payload.outcome;
 
-    show(resultBox);
+      const p = MOVE_META[playerMove];
+      const c = MOVE_META[computerMove];
 
-    updateScoreForOutcome(outcome);
-  } catch (e) {
-    setApiError("Network error. Please try again.");
-  } finally {
-    setButtonsDisabled(false);
-  }
+      hide(countdownEl);
+
+      modalMoves.textContent = `You: ${p.emoji} ${p.label}  •  Computer: ${c.emoji} ${c.label}`;
+      modalOutcome.textContent = outcomeTitle(outcome);
+
+      show(modalMoves);
+      show(modalOutcome);
+      show(nextRoundBtn);
+
+      updateScoreForOutcome(outcome);
+    } catch (e) {
+      // On error, allow user to retry next round
+      hide(countdownEl);
+      setModalError(e?.message || "Network error. Please try again.");
+      show(nextRoundBtn);
+    }
+  }, 1000);
+}
+
+function resetForNextRound() {
+  inRound = false;
+  closeModal(true);
+  setButtonsDisabled(false);
 }
 
 // --- Events ---
@@ -194,15 +276,29 @@ changeNickBtn.addEventListener("click", () => {
 resetScoreBtn.addEventListener("click", () => {
   writeScore({ wins: 0, losses: 0, ties: 0 });
   renderScore();
-  hide(resultBox);
+  resetForNextRound();
 });
 
 moveButtons.forEach((btn) => {
   btn.addEventListener("click", () => {
     const move = btn.getAttribute("data-move");
     if (!move) return;
-    play(move);
+    startRound(move);
   });
+});
+
+nextRoundBtn.addEventListener("click", () => {
+  resetForNextRound();
+});
+
+modalCloseBtn.addEventListener("click", () => {
+  // Only closable if not in the middle of countdown/round (unless forced elsewhere)
+  closeModal(false);
+});
+
+// Optional: click outside modal to close (only if not in round)
+modalOverlay.addEventListener("click", (e) => {
+  if (e.target === modalOverlay) closeModal(false);
 });
 
 // --- Boot ---

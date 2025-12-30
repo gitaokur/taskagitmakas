@@ -10,7 +10,6 @@
   <main class="container">
     <header class="header">
       <h1>Rock · Paper · Scissors</h1>
-      <p class="sub">Single-player • Scoreboard saved in your browser</p>
     </header>
 
     <!-- Nickname card -->
@@ -19,7 +18,7 @@
       <p class="muted">Changing your nickname will reset your scoreboard.</p>
 
       <form id="nicknameForm" class="row">
-        <input id="nicknameInput" type="text" placeholder="e.g., alperen" maxlength="24" autocomplete="off" />
+        <input id="nicknameInput" type="text" maxlength="24" autocomplete="off" />
         <button type="submit">Start</button>
       </form>
 
@@ -63,17 +62,28 @@
         <button class="move" data-move="paper" type="button">✋<span>Paper</span></button>
         <button class="move" data-move="scissors" type="button">✌️<span>Scissors</span></button>
       </div>
-
-      <div id="resultBox" class="result hidden">
-        <div class="resultTitle" id="resultTitle"></div>
-        <div class="resultDetails" id="resultDetails"></div>
-      </div>
-
-      <p id="apiError" class="error hidden"></p>
     </section>
 
+    <!-- Modal / Popup -->
+    <div id="modalOverlay" class="modalOverlay hidden" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modalCard">
+        <div class="modalHeader">
+          <div class="modalTitle" id="modalTitle">Get ready…</div>
+          <button id="modalCloseBtn" class="iconBtn" type="button" aria-label="Close">✕</button>
+        </div>
+
+        <div id="countdown" class="countdown">3</div>
+
+        <div id="modalMoves" class="modalMoves hidden"></div>
+        <div id="modalOutcome" class="modalOutcome hidden"></div>
+        <p id="modalError" class="error hidden"></p>
+
+        <button id="nextRoundBtn" class="hidden" type="button">Next Round</button>
+      </div>
+    </div>
+
     <footer class="footer">
-      <span class="muted">Tip: scoreboard is stored in <code>localStorage</code> on this domain.</span>
+      <span class="muted">Have Fun 🎮</span>
     </footer>
   </main>
 
